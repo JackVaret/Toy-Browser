@@ -124,7 +124,7 @@ class URL:
         s.send(request.encode('utf8'))
         response = s.makefile("rb",newline='\r\n')
         statusline = response.readline().decode('utf8')
-        version, status, explanation = statusline.split(" ", 2)
+        status = statusline.split(" ", 2)[1]
         response_headers = store_response_headers(response)
         if 'cache-control' in response_headers:
             self.handle_cache_control(response_headers,cache)
