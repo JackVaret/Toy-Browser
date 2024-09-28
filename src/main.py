@@ -9,6 +9,9 @@ working_directory = os.getcwd()
 server_socket_dict = dict()
 redirect_count = 0
 WIDTH,HEIGHT = 800,600
+HSTEP, VSTEP = 13, 18
+SCROLL_STEP = 100
+cursor_x, cursor_y = HSTEP, VSTEP
 class Browser:
     def __init__(self):
         self.window = tkinter.Tk()
@@ -17,11 +20,34 @@ class Browser:
             width=WIDTH,
             height=HEIGHT
         )
+        self.scroll = 0
+        self.window.bind("<Down>", self.scrolldown)
         self.canvas.pack()
+    def scrolldown(self, e):
+        self.scroll += SCROLL_STEP
+        self.draw()
+    def draw(self):
+        self.canvas.delete("all")
+        for x, y, c in self.display_list:
+            self.canvas.create_text(x,y - self.scroll, text =c)
     def load(self,url):
+        global HSTEP, VSTEP, cursor_x, cursor_y
         self.canvas.create_rectangle(10,20,400,300)
         self.canvas.create_oval(100, 100, 150, 150)
         self.canvas.create_text(200, 150, text="Hi!")
+        text = lex(url.request())
+        self.display_list = layout(text)
+        self.draw()
+def layout(text):
+    display_list = []
+    cursor_x, cursor_y = HSTEP, VSTEP
+    for c in text:
+        display_list.append((cursor_x, cursor_y, c))
+        cursor_x += HSTEP
+        if cursor_x >= WIDTH - HSTEP:
+            cursor_y += VSTEP
+            cursor_x = HSTEP
+    return display_list
 class URL:
     def __init__(self, url):
         self.full_url = url
@@ -152,8 +178,9 @@ class URL:
                 return new_url.request()
         s.close()
         return content
-def show(body, mode='r'):
+def lex(body, mode='r'):
     entity = ''
+    text = ""
     creating_entity = False
     if mode =="r":
         in_tag = False
@@ -169,23 +196,25 @@ def show(body, mode='r'):
                     if creating_entity:
                         if c != 'l' and c != 'g':
                             creating_entity = False
-                            print(entity + c,end="")
+                            text+= (entity + c)
                             entity = ''
                         else:
                             entity+=c
                             if len(entity) ==4:
                                 if entity == '&lt;':
-                                    print('<')
+                                    text+= "<"
                                     creating_entity = False
                                     entity = ''
                                 elif entity == '&gt;':
-                                    print('>')
+                                    text += ">"
                                     creating_entity = False
                                     entity = ''
                     else:
-                        print(c, end="")
+                        text += c
+        return text
     elif mode =='s':
-        print(body)
+        text = body
+        return text
 
 class Cache:
     def __init__(self):
@@ -216,16 +245,13 @@ def load(url):
     global redirect_count
     body = url.request()
     if url.scheme == 'view-source':
-        show(body,'s')
+        lex(body,'s')
         redirect_count = 0
     else:
-        show(body)
+        lex(body)
         redirect_count = 0
 
 if __name__ == "__main__":
     import sys
-    if len(sys.argv) > 1:
-        for i in range(1,len(sys.argv)):
-            load(URL(f"{sys.argv[i]}"))
     Browser().load(URL(sys.argv[1]))
     tkinter.mainloop()
