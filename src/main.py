@@ -65,6 +65,31 @@ class URL:
             self.path = url
         elif self.scheme == 'data':
             self.media_type, self.data = url.split(",",1)
+    def handle_cache_control(self,response_headers,cache):
+        match = re.search(r'max-age=\d+', response_headers['cache-control'])
+        if match and 'no-store' not in response_headers['cache-control']:
+                match_group = match.group()
+                max_age = match_group.replace('max-age=', '')
+                age = response_headers['age'] if 'age' in response_headers else 0
+
+                cache.set_resource(self.full_url, {
+                    'expires-at': int(time.time()) + int(max_age) - int(age),
+                    'headers': response_headers,
+                })
+    def handle_transfer_encoding(self,response):
+        chunks = []
+        while True:
+                chunk_len = response.readline().decode('utf8')
+                chunk_len.replace('\r\n', '')
+                chunk_len = int(chunk_len, 16)
+                chunk = response.read(chunk_len)
+                chunks.append(chunk)
+                response.readline()
+                if chunk_len == 0:
+                    break
+        print('modifying content')
+        content = b''.join(chunks)
+        return content
     def request(self):
         global redirect_count
         cache = Cache()
@@ -99,39 +124,12 @@ class URL:
         s.send(request.encode('utf8'))
         response = s.makefile("rb",newline='\r\n')
         statusline = response.readline().decode('utf8')
-        print(statusline)
         version, status, explanation = statusline.split(" ", 2)
-        response_headers = {}
-        while True:
-            line = response.readline().decode('utf8')
-            if line == "\r\n":
-                break
-            header, value = line.split(":", 1)
-            response_headers[header.casefold()] = value.strip()
+        response_headers = store_response_headers(response)
         if 'cache-control' in response_headers:
-            match = re.search(r'max-age=\d+', response_headers['cache-control'])
-            if match and 'no-store' not in response_headers['cache-control']:
-                match_group = match.group()
-                max_age = match_group.replace('max-age=', '')
-                age = response_headers['age'] if 'age' in response_headers else 0
-
-                cache.set_resource(self.full_url, {
-                    'expires-at': int(time.time()) + int(max_age) - int(age),
-                    'headers': response_headers,
-                })
+            self.handle_cache_control(response_headers,cache)
         if 'transfer-encoding' in response_headers and response_headers['transfer-encoding'] == 'chunked':
-            chunks = []
-            while True:
-                chunk_len = response.readline().decode('utf8')
-                chunk_len.replace('\r\n', '')
-                chunk_len = int(chunk_len, 16)
-                chunk = response.read(chunk_len)
-                chunks.append(chunk)
-                response.readline()
-                if chunk_len == 0:
-                    break
-            print('modifying content')
-            content = b''.join(chunks)
+            self.handle_transfer_encoding(response)
         else:
             if 'content-length' in response_headers:
                 content = response.read(int(response_headers['content-length']))
@@ -141,7 +139,6 @@ class URL:
             content = zlib.decompressobj(32).decompress(content).decode('utf8')
         else:
             content = content.decode('utf8')
-
         if int(status) >=300 and int(status) <400:
             redirect_location = response_headers['location']
             if redirect_location[0] == '/':
@@ -206,6 +203,15 @@ class Cache:
 
     def delete_resource(self,url):
         del self.db[url]
+def store_response_headers(response):
+    response_headers = {}
+    while True:
+        line = response.readline().decode('utf8')
+        if line == "\r\n":
+            break
+        header, value = line.split(":", 1)
+        response_headers[header.casefold()] = value.strip()
+    return response_headers
 def load(url):
     global redirect_count
     body = url.request()
