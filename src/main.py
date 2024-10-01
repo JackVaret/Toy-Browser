@@ -22,13 +22,21 @@ class Browser:
         )
         self.scroll = 0
         self.window.bind("<Down>", self.scrolldown)
+        self.window.bind("<Up>", self.scrollup)
         self.canvas.pack()
     def scrolldown(self, e):
         self.scroll += SCROLL_STEP
         self.draw()
+    def scrollup(self,e):
+        self.scroll -= SCROLL_STEP
+        self.draw()
     def draw(self):
         self.canvas.delete("all")
         for x, y, c in self.display_list:
+            if y> self.scroll + HEIGHT:
+                continue
+            if y + VSTEP<self.scroll:
+                continue
             self.canvas.create_text(x,y - self.scroll, text =c)
     def load(self,url):
         global HSTEP, VSTEP, cursor_x, cursor_y
@@ -113,7 +121,6 @@ class URL:
                 response.readline()
                 if chunk_len == 0:
                     break
-        print('modifying content')
         content = b''.join(chunks)
         return content
     def request(self):
