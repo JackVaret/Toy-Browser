@@ -29,6 +29,8 @@ class Browser:
         self.draw()
     def scrollup(self,e):
         self.scroll -= SCROLL_STEP
+        if self.scroll < 0:
+            self.scroll = 0
         self.draw()
     def draw(self):
         self.canvas.delete("all")
