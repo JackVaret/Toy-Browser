@@ -54,8 +54,9 @@ def layout(text):
     for c in text:
         display_list.append((cursor_x, cursor_y, c))
         cursor_x += HSTEP
-        if cursor_x >= WIDTH - HSTEP:
-            cursor_y += VSTEP
+        # Creates new lines when x is past the page
+        if cursor_x >= WIDTH - HSTEP or c == '\n':
+            cursor_y += VSTEP + 10
             cursor_x = HSTEP
     return display_list
 class URL:
