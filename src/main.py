@@ -23,6 +23,8 @@ class Browser:
         self.scroll = 0
         self.window.bind("<Down>", self.scrolldown)
         self.window.bind("<Up>", self.scrollup)
+        self.window.bind("<Button4>",self.scrollup)
+        self.window.bind("<Button5>",self.scrolldown)
         self.canvas.pack()
     def scrolldown(self, e):
         self.scroll += SCROLL_STEP
