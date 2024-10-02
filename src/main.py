@@ -23,9 +23,19 @@ class Browser:
         self.scroll = 0
         self.window.bind("<Down>", self.scrolldown)
         self.window.bind("<Up>", self.scrollup)
-        self.window.bind("<Button4>",self.scrollup)
-        self.window.bind("<Button5>",self.scrolldown)
-        self.canvas.pack()
+        self.window.bind("<Button-4>",self.scrollup)
+        self.window.bind("<Button-5>",self.scrolldown)
+        self.window.bind("<Configure>", self.configure)
+        self.canvas.pack(fill='both',expand=True)
+    def configure(self,e):
+        global WIDTH
+        global HEIGHT
+        WIDTH = e.width
+        HEIGHT = e.height
+        self.canvas.config(width=WIDTH,height = HEIGHT)
+        self.canvas.pack(fill='both',expand=True)
+        self.display_list = layout(self.text)
+        self.draw()
     def scrolldown(self, e):
         self.scroll += SCROLL_STEP
         self.draw()
@@ -47,8 +57,8 @@ class Browser:
         self.canvas.create_rectangle(10,20,400,300)
         self.canvas.create_oval(100, 100, 150, 150)
         self.canvas.create_text(200, 150, text="Hi!")
-        text = lex(url.request())
-        self.display_list = layout(text)
+        self.text = lex(url.request())
+        self.display_list = layout(self.text)
         self.draw()
 def layout(text):
     display_list = []
