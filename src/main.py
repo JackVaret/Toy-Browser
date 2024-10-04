@@ -26,16 +26,13 @@ class Browser:
         self.window.bind("<Button-4>",self.scrollup)
         self.window.bind("<Button-5>",self.scrolldown)
         self.window.bind("<Configure>", self.configure)
-        self.canvas.pack(fill='both',expand=True)
     def configure(self,e):
         global WIDTH
         global HEIGHT
         WIDTH = e.width
         HEIGHT = e.height
-        self.canvas.config(width=WIDTH,height = HEIGHT)
-        self.canvas.pack(fill='both',expand=True)
+        self.canvas.pack(fill='both',expand=1)
         self.display_list = layout(self.text)
-        self.draw()
     def scrolldown(self, e):
         self.scroll += SCROLL_STEP
         self.draw()
