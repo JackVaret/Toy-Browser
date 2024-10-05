@@ -12,19 +12,23 @@ WIDTH,HEIGHT = 800,600
 HSTEP, VSTEP = 13, 18
 SCROLL_STEP = 100
 cursor_x, cursor_y = HSTEP, VSTEP
+
 class Browser:
     def __init__(self):
         self.window = tkinter.Tk()
         self.canvas = tkinter.Canvas(
             self.window,
             width=WIDTH,
-            height=HEIGHT
+            height=HEIGHT,
+            scrollregion=(0,0,2000,2000)
         )
         self.scroll = 0
+        self.scrollbar = tkinter.Scrollbar(self.window, orient='vertical',command=self.canvas.yview)
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+        self.scrollbar.place(relx=1,rely=0,relheight=1,anchor='ne')
+        self.scrollbar.bind("<ButtonRelease-1>",self.manage_scrollbar)
         self.window.bind("<Down>", self.scrolldown)
         self.window.bind("<Up>", self.scrollup)
-        self.window.bind("<Button-4>",self.scrollup)
-        self.window.bind("<Button-5>",self.scrolldown)
         self.window.bind("<Configure>", self.configure)
     def configure(self,e):
         global WIDTH
@@ -32,14 +36,29 @@ class Browser:
         WIDTH = e.width
         HEIGHT = e.height
         self.canvas.pack(fill='both',expand=1)
-        self.display_list = layout(self.text)
+        self.display_list, self.endypos = layout(self.text)
+    def manage_scrollbar(self,e):
+        relative_top_scrollbar_position = self.scrollbar.get()[0]
+        relative_bottom_scrollbar_position = self.scrollbar.get()[1]
+        if relative_top_scrollbar_position ==0.0:
+            self.scroll = 0
+        elif relative_bottom_scrollbar_position == 1:
+            self.scroll = self.endypos
+        else:
+            self.scroll = self.endypos * (relative_bottom_scrollbar_position + relative_top_scrollbar_position)/2
+        self.draw()
     def scrolldown(self, e):
-        self.scroll += SCROLL_STEP
+        if self.scroll + SCROLL_STEP > self.display_list[-1][1]:
+            self.scroll = self.display_list[-1][1]
+        else:
+            self.scroll += SCROLL_STEP
+        self.scrollbar.set(1*(self.scroll/self.endypos)-.3,1*self.scroll/self.endypos)
         self.draw()
     def scrollup(self,e):
         self.scroll -= SCROLL_STEP
         if self.scroll < 0:
             self.scroll = 0
+        self.scrollbar.set(1*(self.scroll/self.endypos)-.3,1*self.scroll/self.endypos)
         self.draw()
     def draw(self):
         self.canvas.delete("all")
@@ -55,7 +74,7 @@ class Browser:
         self.canvas.create_oval(100, 100, 150, 150)
         self.canvas.create_text(200, 150, text="Hi!")
         self.text = lex(url.request())
-        self.display_list = layout(self.text)
+        self.display_list, self.endypos = layout(self.text)
         self.draw()
 def layout(text):
     display_list = []
@@ -67,7 +86,9 @@ def layout(text):
         if cursor_x >= WIDTH - HSTEP or c == '\n':
             cursor_y += VSTEP + 10
             cursor_x = HSTEP
-    return display_list
+    # Represents the lowest y value of any displayed content
+    end_ypos = display_list[-1][1]
+    return display_list, end_ypos
 class URL:
     def __init__(self, url):
         self.full_url = url
