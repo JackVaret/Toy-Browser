@@ -12,6 +12,7 @@ redirect_count = 0
 class URL:
     def __init__(self, url):
         self.full_url = url
+        assert ':' in url, "Error! Not a URL!"
         self.scheme, url = url.split(":",1)
         assert self.scheme in {'http', 'https','file', 'data', 'view-source', 'about'}
         if self.scheme == 'http':
@@ -77,6 +78,10 @@ class URL:
         content = b''.join(chunks)
         return content
     def request(self):
+        try:
+            assert self.scheme in {'http', 'https','file', 'data', 'view-source', 'about'}
+        except AssertionError:
+            return "Error! Malformed URL!"
         global redirect_count
         browser_cache = cache.Cache()
         cached_resource = browser_cache.get_resource(self.full_url)
@@ -90,8 +95,6 @@ class URL:
             return chosen_file.read()
         elif self.scheme == 'data':
             return self.data
-        elif self.scheme == 'about':
-            return "Error! Malformed URL!"
         s = socket.socket(
             family=socket.AF_INET,
             type=socket.SOCK_STREAM,
