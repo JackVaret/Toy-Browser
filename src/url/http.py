@@ -13,7 +13,7 @@ class URL:
     def __init__(self, url):
         self.full_url = url
         self.scheme, url = url.split(":",1)
-        assert self.scheme in {'http', 'https','file', 'data', 'view-source'}
+        assert self.scheme in {'http', 'https','file', 'data', 'view-source', 'about'}
         if self.scheme == 'http':
             self.port = 80
         elif self.scheme == 'https':
@@ -90,6 +90,8 @@ class URL:
             return chosen_file.read()
         elif self.scheme == 'data':
             return self.data
+        elif self.scheme == 'about':
+            return "Error! Malformed URL!"
         s = socket.socket(
             family=socket.AF_INET,
             type=socket.SOCK_STREAM,
